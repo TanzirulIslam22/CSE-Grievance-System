@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// Updated: 2026-09-08 - accept @student.ruet.ac.bd and @cse.ruet.ac.bd
 const RUET_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@(student\.)?(cse\.)?ruet\.ac\.bd$/;
 
 const captchaFields = {
