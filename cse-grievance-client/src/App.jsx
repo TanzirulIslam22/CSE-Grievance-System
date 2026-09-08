@@ -15,6 +15,7 @@ import { UserManagementPage } from "./pages/UserManagementPage.jsx";
 import { AuditLogPage } from "./pages/AuditLogPage.jsx";
 import { AnalyticsPage } from "./pages/AnalyticsPage.jsx";
 import { SystemSettingsPage } from "./pages/SystemSettingsPage.jsx";
+import { AboutPage } from "./pages/AboutPage.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/about" element={<AboutPage />} />
 
             <Route
               path="/dashboard"

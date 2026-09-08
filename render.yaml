@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: cse-grievance
+    runtime: node
+    rootDir: .
+    buildCommand: npm --prefix cse-grievance-server install && npm --prefix cse-grievance-client install && npm --prefix cse-grievance-client run build
+    startCommand: npm --prefix cse-grievance-server start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: INSTITUTIONAL_DOMAINS
+        value: ruet.ac.bd
+      - key: CAPTCHA_ENABLED
+        value: "true"

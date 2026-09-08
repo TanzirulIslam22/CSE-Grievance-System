@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 
 export function Footer() {
@@ -14,7 +15,12 @@ export function Footer() {
             </a>
           </span>
         </div>
-        <span>© {new Date().getFullYear()} CSE Grievance System. All rights reserved.</span>
+        <div className="flex items-center gap-3">
+          <Link to="/about" className="text-primary-600 hover:text-primary-700">
+            About / Project info
+          </Link>
+          <span>© {new Date().getFullYear()} CSE Grievance System. All rights reserved.</span>
+        </div>
       </div>
     </footer>
   );
