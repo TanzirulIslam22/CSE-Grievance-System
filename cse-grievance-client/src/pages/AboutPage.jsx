@@ -142,9 +142,15 @@ export function AboutPage() {
                 resolution time, escalated cases — instead of lost paper trails.
               </p>
               <p>
-                <strong>Try the demo.</strong> Student: <code>2203054@student.ruet.ac.bd</code> ·
-                HoD: <code>hod@cse.ruet.ac.bd</code> · Password for both: <code>password123</code>
+                <strong>Try the demo.</strong> All passwords: <code>password123</code>
               </p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>Student: <code>2203054@student.ruet.ac.bd</code></li>
+                <li>Student: <code>2203060@student.cse.ruet.ac.bd</code></li>
+                <li>Teacher: <code>xyz@cse.ruet.ac.bd</code></li>
+                <li>HoD: <code>hod@cse.ruet.ac.bd</code></li>
+                <li>Admin: <code>admin@cse.ruet.ac.bd</code></li>
+              </ul>
             </div>
           </div>
         </section>

@@ -794,6 +794,7 @@ Frontend runs on `http://localhost:5173`
 | Role | Email | Password |
 |---|---|---|
 | Student | `2203054@student.ruet.ac.bd` | `password123` |
+| Student | `2203060@student.cse.ruet.ac.bd` | `password123` |
 | Teacher | `xyz@cse.ruet.ac.bd` | `password123` |
 | HoD | `hod@cse.ruet.ac.bd` | `password123` |
 | Admin | `admin@cse.ruet.ac.bd` | `password123` |

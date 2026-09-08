@@ -22,7 +22,16 @@ complainant identities through three privacy tiers, records every sensitive acti
 audit trail, and generates measurable analytics and reports for departmental management.
 
 > **Live demo:** https://cse-grievance-production.up.railway.app
-> *Demo logins:* Student `2203054@student.ruet.ac.bd` / HoD `hod@cse.ruet.ac.bd` / Admin `admin@cse.ruet.ac.bd` — password `password123` (CAPTCHA on login).
+>
+> **Demo credentials** (password: `password123` for all):
+>
+> | Role | Email |
+> |---|---|
+> | Student | `2203054@student.ruet.ac.bd` |
+> | Student | `2203060@student.cse.ruet.ac.bd` |
+> | Teacher | `xyz@cse.ruet.ac.bd` |
+> | Head of Dept | `hod@cse.ruet.ac.bd` |
+> | Admin | `admin@cse.ruet.ac.bd` |
 
 ---
 
