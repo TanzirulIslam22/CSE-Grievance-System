@@ -89,3 +89,38 @@ export async function me(req, res) {
     },
   });
 }
+
+export async function getPreferences(req, res) {
+  if (!req.userDoc) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  res.json({
+    preferences: {
+      emailOnStatusChange: req.userDoc.notificationPrefs?.emailOnStatusChange !== false,
+      emailOnMessages: req.userDoc.notificationPrefs?.emailOnMessages !== false,
+    },
+  });
+}
+
+export async function updatePreferences(req, res, next) {
+  try {
+    if (!req.userDoc) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const current = req.userDoc.notificationPrefs || {};
+    const nextPrefs = {
+      emailOnStatusChange:
+        req.body.emailOnStatusChange !== undefined ? req.body.emailOnStatusChange : current.emailOnStatusChange,
+      emailOnMessages:
+        req.body.emailOnMessages !== undefined ? req.body.emailOnMessages : current.emailOnMessages,
+    };
+
+    req.userDoc.notificationPrefs = nextPrefs;
+    await req.userDoc.save();
+
+    res.json({ preferences: nextPrefs });
+  } catch (error) {
+    next(error);
+  }
+}

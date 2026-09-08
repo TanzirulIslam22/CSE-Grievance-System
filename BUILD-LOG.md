@@ -730,6 +730,37 @@ New/changed files under `cse-grievance-client/src`:
 
 ---
 
+# Phase 6 — Notification Preferences, SLA Metrics & Weekly Reports
+
+## Step 49: Email Notification Preferences
+
+**Files:** `models/User.js`, `services/emailService.js`, `controllers/authController.js`, `routes/auth.js`, `validators/auth.js`, client `api/auth.js`, `pages/DashboardPage.jsx`
+
+1. **User model**: new `notificationPrefs` embed (`emailOnStatusChange`, `emailOnMessages`) — both default `true`.
+2. **Email service**: `findUserPrefs` now loads each recipient's prefs and skips sending to submitters who opted out (status changes, messages, identity-reveal privacy notices, and escalations all respect the flags). Department staff (HoD/Admin) always receive their breakdown emails.
+3. **API**: `GET /auth/me/preferences` and `PATCH /auth/me/preferences` (any authenticated user, Zod-validated booleans only).
+4. **Client**: an **Email Preferences** card on the Dashboard (all roles) with two toggles, persisted immediately.
+
+## Step 50: SLA Metrics + Weekly Report
+
+**Files (server):** `services/analyticsService.js`, `services/reportService.js` (new), `jobs/reportJob.js` (new), `controllers/analyticsController.js`, `routes/analytics.js`, `server.js`
+**Files (client):** `api/analytics.js`, `pages/AnalyticsPage.jsx`
+
+1. **SLA metrics** in `/analytics/summary`: `sla.averageFirstResponseHours` (median-case first status change via a `$lookup` over status history) and `sla.escalatedCount`, alongside the existing resolution average.
+2. **Weekly report** (`services/reportService.js`): builds a summary (totals by status/category, open/resolved/escalated counts) plus a CSV of the 500 most recent cases, and emails it to all HoD/Admin accounts (dev: printed to console by the email fallback). Manual trigger: `POST /analytics/report` (HoD/Admin, audited as `report:send`).
+3. **Scheduled job** (`jobs/reportJob.js`): self-rescheduling timer — default every week on Monday 09:00 (env `REPORT_DAY` 0–6, `REPORT_HOUR`), with a `REPORT_INTERVAL_MS` dev override for testing.
+4. **Client — Analytics page**: new **SLA strip** (first response, resolution, escalated) and a **Send weekly report** button with inline success message.
+
+## Step 51: Phase 6 Tests + Verification (live)
+
+- ✅ Preferences: defaults `true/true`, update one, persist, restore, invalid boolean → 400
+- ✅ Analytics summary returns `sla` object with numeric, non-negative fields
+- ✅ Report: HoD 200 with recipients count; student 403
+- ✅ Regressions: Phase 3 **20/20**, Phase 4 **16/16**, Phase 5 **15/15**, Phase 6 **11/11**
+- ✅ `npm run build` clean (~1743 modules, ~409 kB JS / ~22 kB CSS)
+
+---
+
 ## How to Run
 
 ### 1. Start MongoDB
@@ -798,10 +829,10 @@ Frontend runs on `http://localhost:5173`
 - [x] **Escalation workflow** — manual (HoD/Admin) + background auto-escalation job after N days, with audit trail, email and realtime notifications
 - [x] **Case timeline** (create / status / escalated history with actor details)
 - [x] **Site footer** with developer credit on every page
+- [x] **Per-user email preferences** (status-change and message toggles, respected by every notification path)
+- [x] **SLA metrics** (avg first-response hours, avg resolution days, escalated counts) on the analytics dashboard
+- [x] **Weekly summary report** (CSV + summary email to HoD/Admin) — manual send button + scheduled weekly job
 
-## What's Deferred (Phase 6+)
+## What's Deferred (out of scope for this build)
 
-- [ ] Real ML/NLP categorization & embeddings (swap-in behind the same `/cases/analyze` contract)
-- [ ] Push notifications / email preferences per user
-- [ ] Scheduled CSV/PDF email reports to the HoD
-- [ ] Case reassignment & SLA tracking per case
+- [ ] Real ML/NLP categorization & embeddings (swap-in behind the same `/cases/analyze` contract; requires an external AI service)

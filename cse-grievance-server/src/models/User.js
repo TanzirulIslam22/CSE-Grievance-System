@@ -44,6 +44,10 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    notificationPrefs: {
+      emailOnStatusChange: { type: Boolean, default: true },
+      emailOnMessages: { type: Boolean, default: true },
+    },
   },
   { timestamps: true }
 );

@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { getAnalyticsSummary } from "../api/analytics.js";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getAnalyticsSummary, sendWeeklyReport } from "../api/analytics.js";
 import { STATUS_LABELS, CATEGORY_LABELS, PRIORITY_LABELS } from "../types/index.js";
-import { BarChart3, FileText, CheckCircle2, Clock, MessageSquare, Paperclip, TrendingUp } from "lucide-react";
+import { BarChart3, FileText, CheckCircle2, Clock, MessageSquare, Paperclip, TrendingUp, Gauge, AlertTriangle, Send } from "lucide-react";
 
 function Bar({ label, value, color }) {
   const max = 100;
@@ -27,6 +27,10 @@ export function AnalyticsPage() {
     queryFn: getAnalyticsSummary,
   });
 
+  const reportMutation = useMutation({
+    mutationFn: sendWeeklyReport,
+  });
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -43,10 +47,52 @@ export function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-surface-900">Analytics Dashboard</h1>
-        <p className="mt-1 text-sm text-surface-500">Department-wide complaint statistics (HoD &amp; Admin)</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900">Analytics Dashboard</h1>
+          <p className="mt-1 text-sm text-surface-500">Department-wide complaint statistics (HoD &amp; Admin)</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {reportMutation.isSuccess && (
+            <span className="text-sm text-success-700">{reportMutation.data?.message}</span>
+          )}
+          <button
+            className="btn-secondary gap-1.5"
+            disabled={reportMutation.isPending}
+            onClick={() => reportMutation.mutate()}
+          >
+            {reportMutation.isPending ? <Send className="h-4 w-4 animate-pulse" /> : <Send className="h-4 w-4" />}
+            {reportMutation.isPending ? "Sending..." : "Send weekly report"}
+          </button>
+        </div>
       </div>
+
+      {/* SLA strip */}
+      {(data.sla || (data.averageResolutionDays != null && data.resolved > 0)) && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="card">
+            <Gauge className="mb-2 h-5 w-5 text-primary-500" />
+            <div className="text-2xl font-bold text-surface-900">
+              {data.sla?.averageFirstResponseHours != null
+                ? `${data.sla.averageFirstResponseHours} h`
+                : "—"}
+            </div>
+            <div className="text-xs text-surface-500">Avg. time to first response (hours)</div>
+          </div>
+          <div className="card">
+            <TrendingUp className="mb-2 h-5 w-5 text-success-600" />
+            <div className="text-2xl font-bold text-surface-900">
+              {data.sla?.averageResolutionDays != null ? `${data.sla.averageResolutionDays} d` : "—"}
+            </div>
+            <div className="text-xs text-surface-500">Avg. resolution time (days)</div>
+          </div>
+          <div className="card">
+            <AlertTriangle className="mb-2 h-5 w-5 text-accent-600" />
+            <div className="text-2xl font-bold text-surface-900">{data.sla?.escalatedCount ?? 0}</div>
+            <div className="text-xs text-surface-500">Escalated cases</div>
+          </div>
+        </div>
+      )}
 
       {/* Top stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

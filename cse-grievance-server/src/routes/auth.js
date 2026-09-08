@@ -3,7 +3,7 @@ import * as authController from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
 import { authenticate, loadUser } from "../middleware/auth.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
-import { registerSchema, loginSchema, refreshTokenSchema, forgotPasswordSchema, resetPasswordSchema } from "../validators/auth.js";
+import { registerSchema, loginSchema, refreshTokenSchema, forgotPasswordSchema, resetPasswordSchema, preferencesSchema } from "../validators/auth.js";
 
 const router = Router();
 
@@ -15,5 +15,7 @@ router.post("/refresh", validate(refreshTokenSchema), authController.refresh);
 router.post("/forgot-password", authLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
 router.post("/reset-password", authLimiter, validate(resetPasswordSchema), authController.resetPassword);
 router.get("/me", authenticate, loadUser, authController.me);
+router.get("/me/preferences", authenticate, loadUser, authController.getPreferences);
+router.patch("/me/preferences", authenticate, loadUser, validate(preferencesSchema), authController.updatePreferences);
 
 export default router;

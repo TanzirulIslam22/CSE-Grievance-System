@@ -14,4 +14,10 @@ router.get(
   analyticsController.getAnalyticsSummary
 );
 
+router.post(
+  "/report",
+  requirePermission(PERMISSIONS.ANALYTICS_READ),
+  analyticsController.sendReport
+);
+
 export default router;

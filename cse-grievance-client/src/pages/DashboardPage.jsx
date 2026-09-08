@@ -1,17 +1,29 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getMyCases, getCases } from "../api/cases.js";
+import { getPreferences, updatePreferences } from "../api/auth.js";
 import { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS } from "../types/index.js";
-import { PlusCircle, Clock, CheckCircle, AlertCircle, FileText } from "lucide-react";
+import { PlusCircle, Clock, CheckCircle, AlertCircle, FileText, Bell } from "lucide-react";
 
 export function DashboardPage() {
   const { user } = useAuth();
   const isHodOrAdmin = ["hod", "admin"].includes(user?.role || "");
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: isHodOrAdmin ? ["cases", "all"] : ["cases", "mine"],
     queryFn: () => (isHodOrAdmin ? getCases({ limit: 10 }) : getMyCases({ limit: 10 })),
+  });
+
+  const { data: prefs } = useQuery({
+    queryKey: ["preferences"],
+    queryFn: getPreferences,
+  });
+
+  const prefsMutation = useMutation({
+    mutationFn: (next) => updatePreferences(next),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["preferences"] }),
   });
 
   const cases = data?.cases || [];
@@ -128,6 +140,43 @@ export function DashboardPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="card">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-surface-900">
+          <Bell className="h-5 w-5 text-primary-500" /> Email Preferences
+        </h2>
+        <p className="mb-4 text-sm text-surface-500">
+          Choose which email notifications you receive about your cases.
+        </p>
+        <div className="space-y-3">
+          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-surface-200 p-3">
+            <span>
+              <span className="block text-sm font-medium text-surface-900">Status updates</span>
+              <span className="block text-xs text-surface-500">When the department changes your case status.</span>
+            </span>
+            <input
+              type="checkbox"
+              className="h-5 w-5"
+              checked={prefs?.emailOnStatusChange !== false}
+              disabled={prefsMutation.isPending}
+              onChange={(e) => prefsMutation.mutate({ emailOnStatusChange: e.target.checked })}
+            />
+          </label>
+          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-surface-200 p-3">
+            <span>
+              <span className="block text-sm font-medium text-surface-900">New messages</span>
+              <span className="block text-xs text-surface-500">When the department replies on a case.</span>
+            </span>
+            <input
+              type="checkbox"
+              className="h-5 w-5"
+              checked={prefs?.emailOnMessages !== false}
+              disabled={prefsMutation.isPending}
+              onChange={(e) => prefsMutation.mutate({ emailOnMessages: e.target.checked })}
+            />
+          </label>
+        </div>
       </div>
     </div>
   );

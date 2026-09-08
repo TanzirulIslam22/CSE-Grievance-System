@@ -35,6 +35,16 @@ export async function getMe() {
   return data;
 }
 
+export async function getPreferences() {
+  const { data } = await api.get("/auth/me/preferences");
+  return data.preferences;
+}
+
+export async function updatePreferences(prefs) {
+  const { data } = await api.patch("/auth/me/preferences", prefs);
+  return data.preferences;
+}
+
 export async function refreshTokens(refreshToken) {
   const { data } = await api.post("/auth/refresh", { refreshToken });
   return data;

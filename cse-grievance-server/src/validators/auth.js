@@ -53,3 +53,10 @@ export const resetPasswordSchema = z.object({
       .max(128, "Password too long"),
   }),
 });
+
+export const preferencesSchema = z.object({
+  body: z.object({
+    emailOnStatusChange: z.boolean().optional(),
+    emailOnMessages: z.boolean().optional(),
+  }),
+});

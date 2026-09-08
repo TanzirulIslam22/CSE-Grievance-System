@@ -4,6 +4,7 @@ import { connectDB } from "./config/db.js";
 import { config } from "./config/index.js";
 import { attachIO } from "./realtime/io.js";
 import { startEscalationJob } from "./jobs/escalationJob.js";
+import { startReportJob } from "./jobs/reportJob.js";
 
 async function start() {
   await connectDB();
@@ -12,6 +13,7 @@ async function start() {
   attachIO(server);
 
   startEscalationJob();
+  startReportJob();
 
   server.listen(config.port, () => {
     console.log(`Server running on port ${config.port} in ${config.nodeEnv} mode`);

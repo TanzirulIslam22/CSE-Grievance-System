@@ -6,7 +6,7 @@ import { CASE_STATUS } from "../config/constants.js";
 export async function getAnalyticsSummary() {
   const statuses = Object.values(CASE_STATUS);
 
-  const [byStatus, byCategory, byPrivacy, byPriority, total, resolved, totalMessages, totalEvidence, byMonth] =
+  const [byStatus, byCategory, byPrivacy, byPriority, total, resolved, totalMessages, totalEvidence, byMonth, escalatedCount] =
     await Promise.all([
       Case.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
       Case.aggregate([{ $group: { _id: "$category", count: { $sum: 1 } } }]),
@@ -26,6 +26,7 @@ export async function getAnalyticsSummary() {
         { $sort: { _id: 1 } },
         { $limit: 12 },
       ]),
+      Case.countDocuments({ escalated: true }),
     ]);
 
   const statusMap = {};
@@ -51,13 +52,21 @@ export async function getAnalyticsSummary() {
     priorityMap[r._id] = r.count;
   });
 
+  const avgResolution = await averageResolutionDays();
+  const avgFirstResponseHours = await averageFirstResponseHours();
+
   return {
     total,
     resolved,
     open: total - resolved,
     totalMessages,
     totalEvidence,
-    averageResolutionDays: await averageResolutionDays(),
+    averageResolutionDays: avgResolution,
+    sla: {
+      averageResolutionDays: avgResolution,
+      averageFirstResponseHours: avgFirstResponseHours,
+      escalatedCount,
+    },
     byStatus: statusMap,
     byCategory: categoryMap,
     byPrivacy: privacyMap,
@@ -86,5 +95,34 @@ async function averageResolutionDays() {
   ]);
   if (agg.length === 0) return 0;
   const avg = agg[0].avgDays || 0;
+  return Math.round(avg * 10) / 10;
+}
+
+async function averageFirstResponseHours() {
+  const agg = await Case.aggregate([
+    {
+      $lookup: {
+        from: "casestatushistories",
+        localField: "_id",
+        foreignField: "caseId",
+        as: "history",
+      },
+    },
+    { $match: { "history.0": { $exists: true } } },
+    {
+      $project: {
+        firstAt: { $min: "$history.changedAt" },
+        createdAt: 1,
+      },
+    },
+    {
+      $project: {
+        hours: { $divide: [{ $subtract: ["$firstAt", "$createdAt"] }, 3600000] },
+      },
+    },
+    { $group: { _id: null, avgHours: { $avg: "$hours" } } },
+  ]);
+  if (agg.length === 0) return 0;
+  const avg = agg[0].avgHours || 0;
   return Math.round(avg * 10) / 10;
 }

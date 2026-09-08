@@ -36,13 +36,22 @@ export async function sendEmail(to, subject, text) {
   }
 }
 
-async function findUserEmail(userId) {
+async function findUserPrefs(userId) {
   try {
-    const user = await User.findById(userId).select("institutionalEmail").lean();
-    return user ? user.institutionalEmail : null;
+    const user = await User.findById(userId)
+      .select("institutionalEmail notificationPrefs")
+      .lean();
+    return {
+      email: user ? user.institutionalEmail : null,
+      prefs: user?.notificationPrefs || {},
+    };
   } catch {
-    return null;
+    return { email: null, prefs: {} };
   }
+}
+
+function wantsEmail(prefs, key, fallback = true) {
+  return prefs && prefs[key] !== undefined ? !!prefs[key] : fallback;
 }
 
 export async function notifyNewCase(caseDoc) {
@@ -75,8 +84,8 @@ export async function notifyNewCase(caseDoc) {
 }
 
 export async function notifyStatusChange(publicCaseId, urlSlug, ownerUserId, fromStatus, toStatus) {
-  const email = await findUserEmail(ownerUserId);
-  if (!email) return;
+  const { email, prefs } = await findUserPrefs(ownerUserId);
+  if (!email || !wantsEmail(prefs, "emailOnStatusChange")) return;
   await sendEmail(
     email,
     `Grievance ${publicCaseId}: status changed to ${toStatus.replace(/_/g, " ")}`,
@@ -92,8 +101,8 @@ export async function notifyStatusChange(publicCaseId, urlSlug, ownerUserId, fro
 }
 
 export async function notifyNewMessage(publicCaseId, urlSlug, senderRoleLabel, recipientUserId, preview) {
-  const email = await findUserEmail(recipientUserId);
-  if (!email) return;
+  const { email, prefs } = await findUserPrefs(recipientUserId);
+  if (!email || !wantsEmail(prefs, "emailOnMessages")) return;
   await sendEmail(
     email,
     `New message on grievance ${publicCaseId}`,
@@ -108,8 +117,8 @@ export async function notifyNewMessage(publicCaseId, urlSlug, senderRoleLabel, r
 }
 
 export async function notifyIdentityRevealed(caseD, ownerUserId) {
-  const email = await findUserEmail(ownerUserId);
-  if (!email) return;
+  const { email, prefs } = await findUserPrefs(ownerUserId);
+  if (!email || !wantsEmail(prefs, "emailOnStatusChange")) return;
   await sendEmail(
     email,
     `Privacy notice for grievance ${caseD.caseId}`,
@@ -122,8 +131,8 @@ export async function notifyIdentityRevealed(caseD, ownerUserId) {
 }
 
 export async function notifyCaseEscalated(publicCaseId, urlSlug, ownerUserId, reason) {
-  const email = await findUserEmail(ownerUserId);
-  if (!email) return;
+  const { email, prefs } = await findUserPrefs(ownerUserId);
+  if (!email || !wantsEmail(prefs, "emailOnStatusChange")) return;
   await sendEmail(
     email,
     `Grievance ${publicCaseId} has been escalated`,
