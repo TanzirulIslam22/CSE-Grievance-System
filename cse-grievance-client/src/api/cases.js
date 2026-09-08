@@ -51,3 +51,8 @@ export async function revealCaseIdentity(caseId) {
   const { data } = await api.post(`/cases/${caseId}/reveal-identity`);
   return data;
 }
+
+export async function analyzeCase({ title, description }) {
+  const { data } = await api.post("/cases/analyze", { title, description });
+  return data;
+}

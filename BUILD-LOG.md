@@ -643,6 +643,47 @@ New/changed files under `cse-grievance-client/src`:
 
 ---
 
+# Phase 4 — Self-Service & Intelligence
+
+## Step 41: Self-Service Password Reset
+
+**Files:** `models/User.js`, `services/authService.js`, `controllers/authController.js`, `routes/auth.js`, `validators/auth.js`, `services/emailService.js`, client `pages/ResetPasswordPage.jsx`, `api/auth.js`, `App.jsx`, `LoginPage.jsx`
+
+1. **User model**: added `passwordResetTokenHash` + `passwordResetExpires` (the raw token is never stored — only its SHA-256 hash, so a DB leak can't be replayed).
+2. **`authService.requestPasswordReset(email)`**: generates a 32-byte random token (1-hour expiry), stores its hash, emails a reset link (`{clientUrl}/reset-password?token=...&email=...`) via `sendEmail`. **Returns success even when the email doesn't exist** → no account enumeration.
+3. **`authService.resetPassword(token, newPassword)`**: hashes the submitted token, matches the stored hash + unexpired window, re-hashes the password, clears the token fields.
+4. **Routes** (rate-limited by `authLimiter`): `POST /auth/forgot-password`, `POST /auth/reset-password`.
+5. **Client**: new public `/reset-password` page has two modes — request form (sends link) and reset form (reads `?token=&email=` from the link, min-8 validation, confirm-match check, auto-redirect to login after success). "Forgot your password?" link added to the login card.
+
+## Step 42: Smart Submission Assistant (Categorization + Duplicate Detection)
+
+**Files:** `services/caseAnalysisService.js` (new), `controllers/caseController.js`, `routes/cases.js`, `validators/cases.js`, client `api/cases.js`, `pages/CreateCasePage.jsx`
+
+1. **Heuristic category suggestion** — keyword scoring over `title (2×) + description` for the six categories (`academic`, `faculty_conduct`, `facility`, `administration`, `harassment`, `other`, the fallback). No external AI service — fully offline.
+2. **Duplicate detection** — tokenizes title + description (stop-word filtered), computes a title-weighted overlap similarity against the 200 most recent **active** cases. Students only see *their own* previous cases; HoD/Admin see all — privacy preserved. Returns top 3 matches ≥ 50%.
+3. **Endpoint**: `POST /cases/analyze` (any authenticated user, rate-limited) returns `{ suggestedCategory, categoryScores, duplicates }` and logs an audit `case:analyze` entry.
+4. **Client**: the Create Case form now runs a **debounced (600 ms)** analysis as you type. A "Smart assistant" panel shows a click-to-apply suggested category chip and links to similar existing cases with match percentage (flagged "Exact match!" when titles are identical).
+
+## Step 43: CSV Exports (HoD/Admin)
+
+**Files:** `services/csvService.js` (new), `controllers/caseController.js`, `controllers/auditController.js`, `routes/cases.js`, `routes/audit.js`, client `api/csv.js` (new), `pages/CaseListPage.jsx`, `pages/AuditLogPage.jsx`
+
+1. `csvService.js` — RFC-4180-style escaping (quotes fields containing quotes/commas/newlines).
+2. `GET /cases/export` (requires `case:read-all`) — up to 1,000 most recent cases: Case ID, Title, Category, Priority, Status, Privacy, Identity Revealed, Created, Description.
+3. `GET /audit/export` (requires `audit:read`) — up to 5,000 entries: Time, Actor, Email, Action, Target, Details.
+4. Client `downloadCsv()` helper fetches the blob through the authenticated Axios instance and triggers a download; **Export CSV** buttons added to the All Cases and Audit Log headers.
+
+## Step 44: Phase 4 Tests + Verification (live)
+
+- ✅ Reset without auth required; valid token works; invalid/expired token rejected; login with the new password works; forgotten-email request returns 200 (no enumeration); original password restored by test cleanup
+- ✅ Analyzer: rejects anonymous calls (401), suggests `facility` for a lab/Wi-Fi complaint, returns score arrays, and flags a near-identical existing case at ≥ 90%
+- ✅ CSV: cases export returns `text/csv` with header row; student gets 403; audit export returns valid CSV
+- ✅ Socket.IO still connects after the changes
+- ✅ Phase 3 regressions re-verified: **20/20 passed**
+- ✅ `npm run build` clean (~1742 modules, ~398 kB JS / ~21 kB CSS)
+
+---
+
 ## How to Run
 
 ### 1. Start MongoDB
@@ -705,10 +746,13 @@ Frontend runs on `http://localhost:5173`
 - [x] **WebSocket real-time updates** (Socket.IO, JWT auth, per-user/per-role rooms)
 - [x] **CAPTCHA on auth endpoints** (stateless math captcha, no external services)
 - [x] **System configuration page** (admin only)
+- [x] **Self-service password reset** (1-hour token, hash-stored, no account enumeration)
+- [x] **Smart submission assistant** (heuristic category suggestion + duplicate detection, privacy-aware)
+- [x] **CSV exports** (cases + audit log) for HoD/Admin
 
-## What's Deferred (Phase 4+)
+## What's Deferred (Phase 5+)
 
-- [ ] AI categorization / duplicate detection
-- [ ] Self-service password reset
-- [ ] Email delivery without SMTP (e.g. SendGrid) when production-ready
-- [ ] Paginated export of audit log / analytics to CSV/PDF
+- [ ] Real ML/NLP categorization & embeddings (swap-in behind the same `/cases/analyze` contract)
+- [ ] Escalation workflow (auto-promote unresolved cases to admin after N days)
+- [ ] Push notifications / email preferences per user
+- [ ] Scheduled CSV/PDF email reports to the HoD

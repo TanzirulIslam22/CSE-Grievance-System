@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getCases, getMyCases } from "../api/cases.js";
+import { downloadCsv } from "../api/csv.js";
 import { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS, PRIVACY_LABELS, PRIVACY_BADGE_CLASSES } from "../types/index.js";
-import { Search, FileText, Filter, Lock } from "lucide-react";
+import { Search, FileText, Filter, Download } from "lucide-react";
 
 export function CaseListPage() {
   const { user } = useAuth();
@@ -44,6 +45,12 @@ export function CaseListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-surface-900">{isHodOrAdmin ? "All Cases" : "My Cases"}</h1>
+        {isHodOrAdmin && (
+          <button className="btn-secondary gap-1.5" onClick={() => downloadCsv("/cases/export", "cases")}>
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+        )}
       </div>
 
       <div className="card">

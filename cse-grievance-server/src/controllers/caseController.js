@@ -1,4 +1,6 @@
 import * as caseService from "../services/caseService.js";
+import { analyzeCase } from "../services/caseAnalysisService.js";
+import { toCSV, csvHeaders } from "../services/csvService.js";
 import { logAudit } from "../middleware/audit.js";
 import { User } from "../models/User.js";
 import { Role } from "../models/Role.js";
@@ -176,6 +178,56 @@ export async function getMyCases(req, res, next) {
     const userId = req.user.userId;
     const query = req.query;
     const result = await caseService.getMyCases(userId, query);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function exportCasesCsv(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const role = req.user.role;
+    const query = { ...req.query, limit: 1000, page: 1 };
+    const result = await caseService.getCases(userId, role, query);
+
+    const rows = [[
+      "Case ID", "Title", "Category", "Priority", "Status", "Privacy", "Identity Revealed", "Created (UTC)", "Description",
+    ]];
+    for (const c of result.cases) {
+      rows.push([
+        c.caseId,
+        c.title,
+        c.category,
+        c.priority,
+        c.status,
+        c.privacyMode,
+        c.identityRevealed ? "yes" : "no",
+        new Date(c.createdAt).toISOString(),
+        c.description,
+      ]);
+    }
+
+    const [name, value] = csvHeaders(`cases-${Date.now()}.csv`)[1];
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", value);
+    res.send(toCSV(rows));
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function analyzeCaseRequest(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const role = req.user.role;
+    const { title, description } = req.body;
+    const result = await analyzeCase(userId, role, { title, description });
+    await logAudit(req, "case:analyze", "case", null, {
+      title: (title || "").slice(0, 80),
+      suggestedCategory: result.suggestedCategory,
+      duplicateCount: result.duplicates.length,
+    });
     res.json(result);
   } catch (error) {
     next(error);

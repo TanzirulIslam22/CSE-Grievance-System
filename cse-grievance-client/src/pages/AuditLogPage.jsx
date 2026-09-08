@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAuditLogs } from "../api/admin.js";
-import { ScrollText, Shield } from "lucide-react";
+import { downloadCsv } from "../api/csv.js";
+import { ScrollText, Shield, Download } from "lucide-react";
 
 const ACTION_LABELS = {
   "case:create": "Case Created",
@@ -35,10 +36,16 @@ export function AuditLogPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-surface-900">Audit Log</h1>
-        <span className="flex items-center gap-1.5 text-xs text-surface-500">
-          <Shield className="h-4 w-4 text-primary-500" />
-          Append-only &middot; viewable by HoD and Admin
-        </span>
+        <div className="flex items-center gap-3">
+          <button className="btn-secondary gap-1.5" onClick={() => downloadCsv("/audit/export", "audit")}>
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+          <span className="flex items-center gap-1.5 text-xs text-surface-500">
+            <Shield className="h-4 w-4 text-primary-500" />
+            Append-only &middot; viewable by HoD and Admin
+          </span>
+        </div>
       </div>
 
       <div className="card">

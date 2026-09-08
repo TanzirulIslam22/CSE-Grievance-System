@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
-import { createCase } from "../api/cases.js";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createCase, analyzeCase } from "../api/cases.js";
 import { CATEGORY_LABELS } from "../types/index.js";
-import { Shield, ShieldAlert, EyeOff, Eye } from "lucide-react";
+import { Shield, ShieldAlert, EyeOff, Eye, Sparkles, Copy, Loader2 } from "lucide-react";
 
 export function CreateCasePage() {
   const navigate = useNavigate();
@@ -18,11 +18,31 @@ export function CreateCasePage() {
     involvedParties: "",
   });
   const [error, setError] = useState("");
+  const [analyzeInput, setAnalyzeInput] = useState(null);
 
   const mutation = useMutation({
     mutationFn: createCase,
     onSuccess: (data) => navigate(`/cases/${data.case._id}`),
     onError: (err) => setError(err.response?.data?.error || "Failed to submit case"),
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (form.title.trim().length >= 5 && form.description.trim().length >= 20) {
+        setAnalyzeInput({ title: form.title.trim(), description: form.description.trim() });
+      } else {
+        setAnalyzeInput(null);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [form.title, form.description]);
+
+  const { data: analysis, isFetching: analyzing } = useQuery({
+    queryKey: ["analyze", analyzeInput],
+    queryFn: () => analyzeCase(analyzeInput),
+    enabled: !!analyzeInput,
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
 
   const handleChange = (e) => {
@@ -126,6 +146,64 @@ export function CreateCasePage() {
               </select>
             </div>
           </div>
+
+          {(analysis || analyzing) && (
+            <div className="rounded-xl border border-primary-100 bg-primary-50/50 p-4">
+              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary-700">
+                <Sparkles className="h-4 w-4" />
+                Smart assistant
+                {analyzing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              </div>
+
+              {analysis?.suggestedCategory && (
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-surface-600">Suggested category:</span>
+                  <button
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, category: analysis.suggestedCategory }))}
+                    className={`rounded-full border-2 px-3 py-1 text-xs font-semibold transition-colors ${
+                      form.category === analysis.suggestedCategory
+                        ? "border-primary-600 bg-primary-600 text-white"
+                        : "border-primary-300 bg-white text-primary-700 hover:bg-primary-50"
+                    }`}
+                  >
+                    {CATEGORY_LABELS[analysis.suggestedCategory]}
+                  </button>
+                  {form.category !== analysis.suggestedCategory && (
+                    <span className="text-xs text-surface-400">(click to apply)</span>
+                  )}
+                </div>
+              )}
+
+              {analysis?.duplicates?.length > 0 && (
+                <div className="rounded-lg border border-accent-200 bg-accent-50 p-3">
+                  <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-accent-800">
+                    <Copy className="h-3.5 w-3.5" />
+                    Similar existing {analysis.duplicates.length === 1 ? "case" : "cases"} ({(analysis.duplicates[0]?.score)}% match)
+                  </p>
+                  <ul className="space-y-1.5">
+                    {analysis.duplicates.map((d) => (
+                      <li key={d._id} className="flex items-center justify-between gap-2 text-xs">
+                        <Link
+                          to={`/cases/${d._id}`}
+                          className="flex min-w-0 items-center gap-2 text-primary-700 hover:underline"
+                        >
+                          <span className="font-mono text-surface-400">{d.caseId}</span>
+                          <span className="truncate">{d.title}</span>
+                        </Link>
+                        <span className={`whitespace-nowrap text-surface-500 ${d.exactMatch ? "font-bold text-danger-600" : ""}`}>
+                          {d.exactMatch ? "Exact match!" : `${d.score}%`}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-[11px] text-accent-700">
+                    You can still submit a new case if the situation is different. Reviewing existing cases helps the department resolve faster.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="label-text">Description</label>

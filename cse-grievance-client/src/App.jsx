@@ -6,6 +6,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { Layout } from "./components/Layout.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { RegisterPage } from "./pages/RegisterPage.jsx";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage.jsx";
 import { DashboardPage } from "./pages/DashboardPage.jsx";
 import { CreateCasePage } from "./pages/CreateCasePage.jsx";
 import { CaseListPage } from "./pages/CaseListPage.jsx";
@@ -30,6 +31,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             <Route
               path="/dashboard"

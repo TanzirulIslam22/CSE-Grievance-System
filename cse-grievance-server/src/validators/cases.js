@@ -13,6 +13,13 @@ export const createCaseSchema = z.object({
   }),
 });
 
+export const analyzeCaseSchema = z.object({
+  body: z.object({
+    title: z.string().min(5, "Title must be at least 5 characters").max(200).trim(),
+    description: z.string().min(20, "Description must be at least 20 characters").max(5000),
+  }),
+});
+
 export const updateCaseStatusSchema = z.object({
   body: z.object({
     status: z.enum(["acknowledged", "under_review", "investigation", "action_taken", "resolved", "rejected", "closed"]),

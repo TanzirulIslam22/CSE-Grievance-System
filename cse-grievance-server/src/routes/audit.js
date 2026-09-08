@@ -17,4 +17,6 @@ router.get(
   auditController.getAuditLogs
 );
 
+router.get("/export", requirePermission(PERMISSIONS.AUDIT_READ), auditController.exportAuditCsv);
+
 export default router;

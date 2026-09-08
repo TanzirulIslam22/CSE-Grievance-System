@@ -52,6 +52,26 @@ export async function refresh(req, res, next) {
   }
 }
 
+export async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body;
+    await authService.requestPasswordReset(email);
+    res.json({ message: "If that email exists, a password reset link has been sent." });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const { token, password } = req.body;
+    await authService.resetPassword(token, password);
+    res.json({ message: "Password updated. You can now sign in." });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function me(req, res) {
   if (!req.userDoc || !req.userRole) {
     return res.status(401).json({ error: "Not authenticated" });

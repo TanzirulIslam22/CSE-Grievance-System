@@ -96,6 +96,11 @@ export function LoginPage() {
               Register here
             </Link>
           </p>
+          <p className="mt-2 text-center text-sm">
+            <Link to="/reset-password" className="font-medium text-surface-500 hover:text-primary-700">
+              Forgot your password?
+            </Link>
+          </p>
         </div>
       </div>
     </div>
