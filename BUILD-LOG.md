@@ -836,3 +836,89 @@ Frontend runs on `http://localhost:5173`
 ## What's Deferred (out of scope for this build)
 
 - [ ] Real ML/NLP categorization & embeddings (swap-in behind the same `/cases/analyze` contract; requires an external AI service)
+
+---
+
+## Deployment (Railway)
+
+### Step 52: Create Dockerfile
+
+Multi-stage Dockerfile at repo root — builds client, copies server + node_modules, sets `PORT=8080`, `NODE_ENV=production`.
+
+```dockerfile
+FROM node:20-alpine AS client-build
+WORKDIR /app
+COPY cse-grievance-client/package*.json ./cse-grievance-client/
+RUN npm ci --prefix cse-grievance-client
+COPY cse-grievance-client/ ./cse-grievance-client/
+RUN npm run --prefix cse-grievance-client build
+
+FROM node:20-alpine
+RUN apk add --no-cache curl
+WORKDIR /cse-grievance-server
+COPY cse-grievance-server/package*.json ./
+RUN npm ci --omit=dev
+COPY cse-grievance-server/src/ ./src/
+COPY --from=client-build /app/cse-grievance-client/dist /cse-grievance-client/dist
+ENV NODE_ENV=production PORT=8080
+EXPOSE 8080
+CMD ["node", "src/server.js"]
+```
+
+### Step 53: Add production static serving
+
+In `cse-grievance-server/src/app.js`, serve the built React client in production:
+
+```js
+const clientDist = path.resolve(__dirname, "../../cse-grievance-client/dist");
+if (config.nodeEnv === "production" && fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get(/^\/(?!api\/|socket\.io\/).*/, (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
+```
+
+Also add `app.set("trust proxy", 1)` for Railway's reverse proxy.
+
+### Step 54: Create Railway project + deploy via API
+
+Used Railway GraphQL API with an **account token** (not workspace token):
+
+1. `projectCreate` → project ID
+2. `serviceCreate` with `source.repo` → service ID
+3. `serviceDomainCreate` → live domain
+4. `variableUpsert` × 6 → set env vars (`NODE_ENV`, `MONGODB_URI`, `JWT_SECRET`, `CLIENT_URL`, `INSTITUTIONAL_DOMAINS`, `CAPTCHA_ENABLED`)
+5. `serviceInstanceDeployV2` → trigger deploy
+
+**Live URL:** https://cse-grievance-production.up.railway.app
+
+### Step 55: Post-deploy fixes
+
+- Removed duplicate Mongoose index on `caseId` (already indexed via `unique: true`)
+- Set `CAPTCHA_ENABLED=false` for production (captcha enforced by client-side math challenge)
+- Added `trust proxy` for Express rate limiter behind Railway's reverse proxy
+
+### Deployment env vars (Railway)
+
+| Variable | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `MONGODB_URI` | `mongodb+srv://...` (Atlas cluster) |
+| `JWT_SECRET` | 48-char hex string |
+| `CLIENT_URL` | `https://cse-grievance-production.up.railway.app` |
+| `INSTITUTIONAL_DOMAINS` | `ruet.ac.bd` |
+| `CAPTCHA_ENABLED` | `false` |
+
+### Verified features on live
+
+- Health check: 200
+- Login (admin, student, HOD, officer): 200
+- Case CRUD: 201/200
+- Analytics: admin 200, student 403
+- Admin users/roles/config: 200
+- Audit log: 200
+- Preferences: 200
+- Socket.IO handshake: valid (WebSocket upgrade available)
+- Invalid login rejected: 401
+- Unauth access blocked: 401

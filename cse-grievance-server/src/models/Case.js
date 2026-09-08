@@ -68,7 +68,6 @@ const caseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-caseSchema.index({ caseId: 1 });
 caseSchema.index({ submitterUserId: 1 });
 caseSchema.index({ status: 1 });
 caseSchema.index({ category: 1 });
