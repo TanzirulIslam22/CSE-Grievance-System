@@ -1,3 +1,4 @@
+# Build date: 2026-09-08 - regex fix for @student.ruet.ac.bd
 FROM node:20-alpine AS builder
 WORKDIR /src
 COPY cse-grievance-server ./cse-grievance-server
