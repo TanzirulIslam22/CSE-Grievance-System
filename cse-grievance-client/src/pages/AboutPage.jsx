@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Shield, Lock, MessageSquare, TrendingUp, FileText, Zap, Github, ExternalLink } from "lucide-react";
 import { Footer } from "../components/Footer.jsx";
 
-export const LIVE_URL = "https://cse-grievance.onrender.com";
+export const LIVE_URL = "https://cse-grievance-production.up.railway.app";
 
 const FEATURES = [
   {

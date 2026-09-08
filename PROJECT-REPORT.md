@@ -6,7 +6,7 @@
 
 **Prepared by:** Tanzirul Islam (ID: 2203054) · tanzirul.islam56@gmail.com
 **Date:** 2026
-**Live deployment:** https://cse-grievance.onrender.com
+**Live deployment:** https://cse-grievance-production.up.railway.app
 **Source code:** https://github.com/TanzirulIslam22/CSE-Grievance-System
 
 ---
@@ -21,7 +21,7 @@ with full accountability. The system enforces role-based access control, protect
 complainant identities through three privacy tiers, records every sensitive action in an
 audit trail, and generates measurable analytics and reports for departmental management.
 
-> **Live demo:** https://cse-grievance.onrender.com
+> **Live demo:** https://cse-grievance-production.up.railway.app
 > *Demo logins:* Student `2203054@student.ruet.ac.bd` / HoD `hod@cse.ruet.ac.bd` / Admin `admin@cse.ruet.ac.bd` — password `password123` (CAPTCHA on login).
 
 ---

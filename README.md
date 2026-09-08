@@ -4,7 +4,7 @@ A secure, digital **grievance-resolution system** for the Department of Computer
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
-> **Live app:** https://cse-grievance.onrender.com
+> **Live app:** https://cse-grievance-production.up.railway.app
 >
 > **About page (inside the app):** use the "About / Project info" link in the footer.
 
@@ -210,7 +210,7 @@ The app is designed to run as a **single Node service** (backend + built fronten
   ```
 - **Environment:** `NODE_ENV=production`, `MONGODB_URI` (Atlas), `JWT_SECRET`, `CLIENT_URL` (your live URL), `INSTITUTIONAL_DOMAINS`, plus optional SMTP settings.
 
-A `render.yaml` blueprint is included for one-click deployment, and the entire config drives the live instance at **https://cse-grievance.onrender.com**.
+A `render.yaml` blueprint is included for one-click deployment, and the entire config drives the live instance at **https://cse-grievance-production.up.railway.app**.
 
 > Note: uploaded evidence (`uploads/`) lives on the server's disk and is ephemeral on free hosts — fine for demos; pair with object storage for production.
 
