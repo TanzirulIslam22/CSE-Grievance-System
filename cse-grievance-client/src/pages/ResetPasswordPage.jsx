@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { forgotPassword, resetPassword } from "../api/auth.js";
+import { Footer } from "../components/Footer.jsx";
 import { KeyRound, Send, Shield } from "lucide-react";
 
 export function ResetPasswordPage() {
@@ -52,8 +53,9 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-50 px-4">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-screen flex-col bg-surface-50">
+      <div className="flex flex-1 items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-600">
             <KeyRound className="h-8 w-8 text-white" />
@@ -134,7 +136,9 @@ export function ResetPasswordPage() {
           <Shield className="h-3.5 w-3.5" />
           Secure institutional account recovery
         </div>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }

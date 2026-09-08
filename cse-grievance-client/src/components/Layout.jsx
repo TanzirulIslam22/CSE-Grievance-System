@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { Footer } from "./Footer.jsx";
 import { LayoutDashboard, PlusCircle, FileText, LogOut, Shield, Users, ScrollText, BarChart3, Settings } from "lucide-react";
 
 export function Layout({ children }) {
@@ -80,6 +81,7 @@ export function Layout({ children }) {
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
+        <Footer />
       </div>
     </div>
   );

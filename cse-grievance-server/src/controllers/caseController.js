@@ -9,6 +9,8 @@ import {
   notifyStatusChange,
   notifyNewMessage,
   notifyIdentityRevealed,
+  notifyCaseEscalated,
+  notifyEscalationToStaff,
 } from "../services/emailService.js";
 import { emitToRole, emitToUser } from "../realtime/io.js";
 
@@ -192,7 +194,7 @@ export async function exportCasesCsv(req, res, next) {
     const result = await caseService.getCases(userId, role, query);
 
     const rows = [[
-      "Case ID", "Title", "Category", "Priority", "Status", "Privacy", "Identity Revealed", "Created (UTC)", "Description",
+      "Case ID", "Title", "Category", "Priority", "Status", "Privacy", "Identity Revealed", "Escalated", "Created (UTC)", "Description",
     ]];
     for (const c of result.cases) {
       rows.push([
@@ -203,6 +205,7 @@ export async function exportCasesCsv(req, res, next) {
         c.status,
         c.privacyMode,
         c.identityRevealed ? "yes" : "no",
+        c.escalated ? "yes" : "no",
         new Date(c.createdAt).toISOString(),
         c.description,
       ]);
@@ -229,6 +232,55 @@ export async function analyzeCaseRequest(req, res, next) {
       duplicateCount: result.duplicates.length,
     });
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function escalateCaseRequest(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const caseId = req.params.id;
+    const { reason } = req.body;
+    const result = await caseService.escalateCase(caseId, userId, reason);
+
+    if (!result.alreadyEscalated) {
+      await logAudit(req, "case:escalated", "case", result._id, {
+        caseId: result.caseId,
+        reason: (reason || "").slice(0, 200),
+      });
+
+      emitToUser(result.ownerUserId, "case:escalated", {
+        caseId: result.caseId,
+        _id: result._id,
+      });
+      emitToRole("hod", "case:escalated", {
+        caseId: result.caseId,
+        _id: result._id,
+      });
+      emitToRole("admin", "case:escalated", {
+        caseId: result.caseId,
+        _id: result._id,
+      });
+
+      notifyCaseEscalated(result.caseId, result._id, result.ownerUserId, reason);
+      notifyEscalationToStaff(result.caseId, result._id, reason);
+    }
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getCaseTimeline(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const role = req.user.role;
+    const caseId = req.params.id;
+    const events = await caseService.getCaseTimeline(caseId, userId, role);
+    await logAudit(req, "case:timeline:read", "case", caseId);
+    res.json({ events });
   } catch (error) {
     next(error);
   }

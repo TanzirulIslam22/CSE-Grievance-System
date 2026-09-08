@@ -30,6 +30,7 @@ export function RealtimeProvider({ children }) {
     socket.on("case:new", invalidateAll);
     socket.on("case:status", invalidateAll);
     socket.on("case:identity-revealed", invalidateAll);
+    socket.on("case:escalated", invalidateAll);
     socket.on("case:message", () => {
       queryClient.invalidateQueries({ queryKey: ["messages"] });
       queryClient.invalidateQueries({ queryKey: ["cases"] });

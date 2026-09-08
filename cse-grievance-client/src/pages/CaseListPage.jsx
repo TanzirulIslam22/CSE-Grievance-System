@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { getCases, getMyCases } from "../api/cases.js";
 import { downloadCsv } from "../api/csv.js";
 import { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS, PRIVACY_LABELS, PRIVACY_BADGE_CLASSES } from "../types/index.js";
-import { Search, FileText, Filter, Download } from "lucide-react";
+import { Search, FileText, Filter, Download, AlertTriangle } from "lucide-react";
 
 export function CaseListPage() {
   const { user } = useAuth();
@@ -124,6 +124,11 @@ export function CaseListPage() {
                     )}
                     {c.privacyMode === "protected" && (
                       <span className={`badge ${PRIVACY_BADGE_CLASSES.protected}`}>{PRIVACY_LABELS.protected}</span>
+                    )}
+                    {c.escalated && (
+                      <span className="badge bg-accent-100 text-accent-800">
+                        <AlertTriangle className="mr-0.5 inline h-3 w-3" /> Escalated
+                      </span>
                     )}
                   </div>
                   <p className="mt-1.5 text-sm font-medium text-surface-900">{c.title}</p>

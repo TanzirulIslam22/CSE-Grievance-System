@@ -120,3 +120,43 @@ export async function notifyIdentityRevealed(caseD, ownerUserId) {
     ].join("\n")
   );
 }
+
+export async function notifyCaseEscalated(publicCaseId, urlSlug, ownerUserId, reason) {
+  const email = await findUserEmail(ownerUserId);
+  if (!email) return;
+  await sendEmail(
+    email,
+    `Grievance ${publicCaseId} has been escalated`,
+    [
+      `Your grievance ${publicCaseId} has been escalated for priority attention.`,
+      reason ? `Reason: ${reason}` : "",
+      ``,
+      `Track it here: ${config.clientUrl}/cases/${urlSlug}`,
+    ].filter(Boolean).join("\n")
+  );
+}
+
+export async function notifyEscalationToStaff(publicCaseId, ownerUserId, reason) {
+  const recipients = await User.find({ role: { $exists: true } })
+    .populate("role")
+    .select("institutionalEmail")
+    .lean();
+  const hodAdmins = recipients.filter(
+    (u) => u.role && ["hod", "admin"].includes(u.role.name)
+  );
+  const emails = [...new Set(hodAdmins.map((u) => u.institutionalEmail))];
+  if (emails.length === 0) return;
+
+  const subject = `Escalated grievance: ${publicCaseId}`;
+  const text = [
+    `A grievance has been escalated and requires priority attention.`,
+    ``,
+    `Case: ${publicCaseId}`,
+    reason ? `Reason: ${reason}` : "",
+    `Sign in to review: ${config.clientUrl}/cases/${ownerUserId}`,
+  ].filter(Boolean).join("\n");
+
+  for (const email of emails) {
+    await sendEmail(email, subject, text);
+  }
+}

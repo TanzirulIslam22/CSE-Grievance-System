@@ -6,6 +6,8 @@ export const DEFAULT_CONFIG = {
   maxEvidenceSizeMb: { value: 10, description: "Maximum size of a single evidence file (MB)" },
   supportEmail: { value: "", description: "Department support / feedback email shown to users" },
   departmentName: { value: "Department of CSE, RUET", description: "Department name shown in the UI" },
+  escalationEnabled: { value: false, description: "Automatically escalate unresolved cases after N days" },
+  escalationDays: { value: 7, description: "Days of inactivity before an unresolved case is auto-escalated" },
 };
 
 export async function getAllConfig() {

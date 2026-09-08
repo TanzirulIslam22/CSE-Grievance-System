@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
-import { getCaseById, updateCaseStatus, getCaseMessages, sendCaseMessage, revealCaseIdentity } from "../api/cases.js";
+import { getCaseById, updateCaseStatus, getCaseMessages, sendCaseMessage, revealCaseIdentity, escalateCase, getCaseTimeline } from "../api/cases.js";
 import { getEvidence, uploadEvidence, deleteEvidence, getEvidenceDownloadUrl } from "../api/evidence.js";
 import { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS, PRIVACY_LABELS, PRIVACY_BADGE_CLASSES } from "../types/index.js";
-import { Send, ArrowLeft, Shield, Eye, EyeOff, ShieldAlert, Paperclip, Download, Trash2, Loader2, Lock } from "lucide-react";
+import { Send, ArrowLeft, Shield, Eye, EyeOff, ShieldAlert, Paperclip, Download, Trash2, Loader2, Lock, AlertTriangle, History } from "lucide-react";
 
 const STATUS_TRANSITIONS_MAP = {
   submitted: ["acknowledged", "rejected"],
@@ -28,10 +28,17 @@ export function CaseDetailPage() {
   const [newMessage, setNewMessage] = useState("");
   const [statusReason, setStatusReason] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [escalationReason, setEscalationReason] = useState("");
 
   const { data: caseData, isLoading: caseLoading } = useQuery({
     queryKey: ["case", id],
     queryFn: () => getCaseById(id),
+    enabled: !!id,
+  });
+
+  const { data: timelineData, isLoading: timelineLoading } = useQuery({
+    queryKey: ["timeline", id],
+    queryFn: () => getCaseTimeline(id),
     enabled: !!id,
   });
 
@@ -87,9 +94,21 @@ export function CaseDetailPage() {
     },
   });
 
+  const escalateMutation = useMutation({
+    mutationFn: () => escalateCase(id, escalationReason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["case", id] });
+      queryClient.invalidateQueries({ queryKey: ["cases"] });
+      queryClient.invalidateQueries({ queryKey: ["timeline", id] });
+      queryClient.invalidateQueries({ queryKey: ["audit"] });
+      setEscalationReason("");
+    },
+  });
+
   const caseItem = caseData?.case;
   const messages = messagesData?.messages || [];
   const evidenceList = evidenceData?.evidence || [];
+  const timelineEvents = timelineData?.events || [];
 
   if (caseLoading) {
     return (
@@ -181,6 +200,23 @@ export function CaseDetailPage() {
           </div>
         )}
 
+        {caseItem.escalated && (
+          <div className="mt-4 rounded-lg border border-accent-200 bg-accent-50 p-4">
+            <div className="flex items-start gap-2 text-sm text-accent-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <div>
+                <span className="font-semibold">This case has been escalated</span>
+                {caseItem.escalationReason && <span className="ml-1 text-accent-700">— {caseItem.escalationReason}</span>}
+              </div>
+            </div>
+            {caseItem.escalatedAt && (
+              <p className="mt-1 pl-6 text-xs text-accent-700">
+                Escalated on {new Date(caseItem.escalatedAt).toLocaleString()}
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="mt-4 text-sm text-surface-700">{caseItem.description}</div>
 
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-surface-500">
@@ -209,6 +245,90 @@ export function CaseDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Escalation (HoD/Admin only) */}
+      {isHodOrAdmin && !caseItem.escalated && (
+        <div className="card">
+          <h3 className="mb-3 text-sm font-semibold text-surface-900">Escalate</h3>
+          <div className="flex flex-wrap items-end gap-3">
+            <input
+              type="text"
+              className="input-field flex-1"
+              placeholder="Reason for escalation (optional)"
+              value={escalationReason}
+              onChange={(e) => setEscalationReason(e.target.value)}
+            />
+            <button
+              className="btn-secondary gap-1.5 text-accent-700"
+              disabled={escalateMutation.isPending}
+              onClick={() => escalateMutation.mutate()}
+            >
+              {escalateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+              {escalateMutation.isPending ? "Escalating..." : "Escalate"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Timeline */}
+      <div className="card">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-surface-900">
+          <History className="h-4 w-4 text-primary-500" /> Case Timeline
+        </h3>
+        {timelineLoading ? (
+          <p className="py-4 text-center text-sm text-surface-500">Loading timeline...</p>
+        ) : timelineEvents.length === 0 ? (
+          <p className="py-4 text-center text-sm text-surface-500">No events recorded yet.</p>
+        ) : (
+          <ol className="relative space-y-4 border-l-2 border-surface-100 pl-4 ml-1">
+            {timelineEvents.map((ev, i) => {
+              const isEscalation = ev.type === "escalated";
+              const icon = isEscalation ? (
+                <AlertTriangle className="h-3.5 w-3.5" />
+              ) : ev.type === "created" ? (
+                <Shield className="h-3.5 w-3.5" />
+              ) : (
+                <History className="h-3.5 w-3.5" />
+              );
+              return (
+                <li key={i} className="relative">
+                  <span
+                    className={`absolute -left-6 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white shadow-sm ${
+                      isEscalation ? "bg-accent-500 text-white" : "bg-primary-600 text-white"
+                    }`}
+                  >
+                    {icon}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-x-2 text-sm">
+                    {ev.type === "created" && (
+                      <span className="font-medium text-surface-900">Case submitted</span>
+                    )}
+                    {ev.type === "status" && (
+                      <span className="font-medium text-surface-900">
+                        Status: {STATUS_LABELS[ev.from] || ev.from} → {STATUS_LABELS[ev.to] || ev.to}
+                      </span>
+                    )}
+                    {isEscalation && (
+                      <span className="font-medium text-accent-800">Case escalated</span>
+                    )}
+                    <span className="text-xs text-surface-400">{new Date(ev.at).toLocaleString()}</span>
+                  </div>
+                  {ev.by && ev.by.name && ev.type !== "created" && (
+                    <p className="mt-0.5 text-xs text-surface-500">
+                      by {ev.by.name}
+                      {ev.by.role ? ` (${ev.by.role.replace(/_/g, " ")})` : ""}
+                      {ev.reason ? ` — ${ev.reason}` : ""}
+                    </p>
+                  )}
+                  {!ev.by && ev.reason && (
+                    <p className="mt-0.5 text-xs text-surface-500">{ev.reason}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
 
       {/* Evidence */}
       <div className="card">

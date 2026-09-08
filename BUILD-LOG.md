@@ -684,6 +684,52 @@ New/changed files under `cse-grievance-client/src`:
 
 ---
 
+# Phase 5 — Escalation Workflow, Timeline & Site Footer
+
+## Step 45: Site Footer (all pages)
+
+**Files:** `components/Footer.jsx` (new), `components/Layout.jsx`, `LoginPage.jsx`, `RegisterPage.jsx`, `ResetPasswordPage.jsx`
+
+1. New `Footer` component shows the developer credit line + copyright and follows the institutional style:
+
+   > **Developed by Tanzirul Islam — Dept. of CSE, RUET • ID: 2203054 • tanzirul.islam56@gmail.com**
+
+   with the email rendered as a `mailto:` link.
+2. It is pinned to the bottom of the authenticated app shell (below the scrollable main area in `Layout`) and to the three public auth pages (login / register / reset-password), which were restructured to a `flex-col` page wrapper with a `flex-1` content column so the credit always sits at the bottom.
+3. Verified present in the production bundle after `vite build`.
+
+## Step 46: Escalation Workflow (Backend)
+
+**Files:** `models/Case.js`, `models/AuditLog.js`, `services/configService.js`, `services/caseService.js`, `services/emailService.js`, `controllers/caseController.js`, `routes/cases.js`, `validators/cases.js`, `jobs/escalationJob.js` (new), `server.js`
+
+1. **Case model**: added `escalated`, `escalatedAt`, `escalatedByUserId`, `escalationReason`. Exposed on every case payload via `shapeCaseResponse`.
+2. **Manual escalation** — `POST /cases/:id/escalate` (HoD/Admin via `case:status-update` permission): sets the flag (idempotent — second call returns `alreadyEscalated: true`), records an audit `case:escalated` entry, emits `case:escalated` to the submitter + HoD + admin over Socket.IO, and emails the submitter and all HoD/admins.
+3. **Auto-escalation job** (`jobs/escalationJob.js`): a background scan (interval from `ESCALATION_SCAN_INTERVAL_MS`, default 30 min, first run after 15 s) picks active cases (`submitted/acknowledged/under_review/investigation/action_taken`) whose `updatedAt` is older than `escalationDays` (default 7) and not yet escalated. Each is flagged, logged as audit `case:auto-escalated` (actor intentionally `null` — AuditLog `actorUserId` is now optional and already rendered as "—" by the audit UI/service), emitted over the socket, and both emails are sent.
+4. **Config** (Admin → Settings): `escalationEnabled` (toggle) and `escalationDays` (1–90), persisted in `SystemConfig`.
+
+## Step 47: Timeline + Client UI
+
+**Files (server):** `services/caseService.js` (`getCaseTimeline`), `controllers/caseController.js`, `routes/cases.js`, `validators/cases.js`
+
+1. `GET /cases/:id/timeline` — same ownership/visibility rules as the case detail. Returns an ordered list: the case-creation event, every `CaseStatusHistory` entry (with actor name + role), and the escalation event when present. Audits `case:timeline:read`.
+2. **Client — CaseDetailPage**: an amber **escalated banner** (reason + date), an **Escalate** card (HoD/Admin, optional reason), and a vertical **Case Timeline** card with icons for created / status / escalated events.
+3. **Client — CaseListPage**: "Escalated" badge next to priority for escalated cases.
+4. **Client — SystemSettingsPage**: Escalation Workflow section (auto-escalate toggle + days input, disabled unless enabled).
+5. **RealtimeContext**: subscribes to `case:escalated` so open views refresh instantly.
+6. **AuditLogPage**: labels for `case:escalated`, `case:auto-escalated`, `case:analyze`, `case:timeline:read`. CSV cases export gained an **Escalated** column.
+
+## Step 48: Phase 5 Tests + Verification (live)
+
+- ✅ Manual escalation: student 403, HoD 200, reason stored, second call idempotent
+- ✅ Timeline: created + status (after HoD acknowledges) + escalated (after escalate) all present; student can read own timeline
+- ✅ Auto-escalation: with the scan interval set short in dev, a case aged 6 days (config `escalationDays: 1`) was auto-escalated with the correct reason, while a fresh active case was left untouched
+- ✅ CSV header now includes `Escalated`
+- ✅ Socket.IO reconnects and emits escalation events
+- ✅ Phase 3 regression: **20/20**; Phase 4 regression: **16/16**; Phase 5: **15/15**
+- ✅ `npm run build` clean (~1743 modules, ~405 kB JS / ~22 kB CSS)
+
+---
+
 ## How to Run
 
 ### 1. Start MongoDB
@@ -749,10 +795,13 @@ Frontend runs on `http://localhost:5173`
 - [x] **Self-service password reset** (1-hour token, hash-stored, no account enumeration)
 - [x] **Smart submission assistant** (heuristic category suggestion + duplicate detection, privacy-aware)
 - [x] **CSV exports** (cases + audit log) for HoD/Admin
+- [x] **Escalation workflow** — manual (HoD/Admin) + background auto-escalation job after N days, with audit trail, email and realtime notifications
+- [x] **Case timeline** (create / status / escalated history with actor details)
+- [x] **Site footer** with developer credit on every page
 
-## What's Deferred (Phase 5+)
+## What's Deferred (Phase 6+)
 
 - [ ] Real ML/NLP categorization & embeddings (swap-in behind the same `/cases/analyze` contract)
-- [ ] Escalation workflow (auto-promote unresolved cases to admin after N days)
 - [ ] Push notifications / email preferences per user
 - [ ] Scheduled CSV/PDF email reports to the HoD
+- [ ] Case reassignment & SLA tracking per case

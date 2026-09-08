@@ -49,3 +49,18 @@ export const caseQuerySchema = z.object({
     search: z.string().max(200).optional(),
   }),
 });
+
+export const escalateCaseSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    reason: z.string().max(500, "Reason is too long").optional(),
+  }),
+});
+
+export const caseTimelineSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+});

@@ -46,6 +46,17 @@ const caseSchema = new mongoose.Schema(
       enum: ["low", "medium", "high", "urgent"],
       default: "medium",
     },
+    escalated: {
+      type: Boolean,
+      default: false,
+    },
+    escalatedAt: { type: Date },
+    escalatedByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    escalationReason: { type: String, trim: true, maxlength: 500 },
     submitterUserId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

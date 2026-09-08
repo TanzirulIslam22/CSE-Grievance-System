@@ -36,6 +36,9 @@ function shapeCaseResponse(caseDoc, role, includeSubmitter = false) {
     identityRevealed: caseDoc.privacyMode === "confidential" ? !!caseDoc.identityRevealed : undefined,
     status: caseDoc.status,
     priority: caseDoc.priority,
+    escalated: !!caseDoc.escalated,
+    escalatedAt: caseDoc.escalatedAt || null,
+    escalationReason: caseDoc.escalationReason || null,
     courseOrContext: caseDoc.courseOrContext,
     involvedParties: caseDoc.involvedParties,
     createdAt: caseDoc.createdAt,
@@ -378,4 +381,111 @@ function isAnonymousCase(caseDoc) {
     caseDoc.privacyMode === "protected" ||
     (caseDoc.privacyMode === "confidential" && caseDoc.identityRevealed !== true)
   );
+}
+
+export async function escalateCase(caseId, userId, reason) {
+  const caseDoc = await Case.findOne({
+    $or: [{ _id: caseId }, { caseId }],
+  });
+
+  if (!caseDoc) {
+    const err = new Error("Case not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (caseDoc.escalated) {
+    return {
+      caseId: caseDoc.caseId,
+      _id: caseDoc._id.toString(),
+      ownerUserId: caseDoc.submitterUserId.toString(),
+      alreadyEscalated: true,
+      escalatedAt: caseDoc.escalatedAt,
+    };
+  }
+
+  caseDoc.escalated = true;
+  caseDoc.escalatedAt = new Date();
+  caseDoc.escalatedByUserId = userId;
+  caseDoc.escalationReason = reason || null;
+  await caseDoc.save();
+
+  return {
+    caseId: caseDoc.caseId,
+    _id: caseDoc._id.toString(),
+    ownerUserId: caseDoc.submitterUserId.toString(),
+    alreadyEscalated: false,
+    escalatedAt: caseDoc.escalatedAt,
+    escalationReason: caseDoc.escalationReason,
+  };
+}
+
+export async function getCaseTimeline(caseId, userId, role) {
+  const caseDoc = await Case.findOne({
+    $or: [{ _id: caseId }, { caseId }],
+  }).lean();
+
+  if (!caseDoc) {
+    const err = new Error("Case not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const isOwner = caseDoc.submitterUserId.toString() === userId;
+  const isHodOrAdmin = ["hod", "admin"].includes(role);
+
+  if (!isOwner && !isHodOrAdmin) {
+    const err = new Error("Access denied");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const historyDocs = await CaseStatusHistory.find({ caseId: caseDoc._id })
+    .sort({ changedAt: 1 })
+    .lean();
+
+  const uniqueActorIds = [...new Set(historyDocs.map((h) => h.changedBy?.toString()).filter(Boolean))];
+  const actorMap = new Map();
+  if (uniqueActorIds.length > 0) {
+    const actors = await User.find({ _id: { $in: uniqueActorIds } })
+      .populate("role")
+      .select("name role")
+      .lean();
+    actors.forEach((a) => actorMap.set(a._id.toString(), { name: a.name, role: a.role?.name }));
+  }
+
+  const events = [
+    {
+      type: "created",
+      at: caseDoc.createdAt,
+      status: "submitted",
+      by: null,
+      metadata: null,
+    },
+  ];
+
+  for (const h of historyDocs) {
+    const actor = actorMap.get(h.changedBy?.toString());
+    events.push({
+      type: "status",
+      from: h.fromStatus,
+      to: h.toStatus,
+      reason: h.reason || null,
+      at: h.changedAt,
+      by: actor || { name: "Unknown", role: null },
+      metadata: null,
+    });
+  }
+
+  if (caseDoc.escalated) {
+    events.push({
+      type: "escalated",
+      reason: caseDoc.escalationReason || null,
+      at: caseDoc.escalatedAt,
+      by: null,
+      metadata: null,
+    });
+  }
+
+  return events;
 }

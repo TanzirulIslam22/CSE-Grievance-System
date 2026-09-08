@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { CaptchaField } from "../components/CaptchaField.jsx";
+import { Footer } from "../components/Footer.jsx";
 import { Shield } from "lucide-react";
 
 export function RegisterPage() {
@@ -47,8 +48,9 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-50 px-4">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-screen flex-col bg-surface-50">
+      <div className="flex flex-1 items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-600">
             <Shield className="h-8 w-8 text-white" />
@@ -113,6 +115,8 @@ export function RegisterPage() {
           </p>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

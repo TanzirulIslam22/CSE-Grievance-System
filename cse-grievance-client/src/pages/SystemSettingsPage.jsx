@@ -30,7 +30,7 @@ export function SystemSettingsPage() {
     e.preventDefault();
     const values = {};
     Object.entries(config).forEach(([key, value]) => {
-      if (key === "maxEvidenceSizeMb") values[key] = Number(value);
+      if (key === "maxEvidenceSizeMb" || key === "escalationDays") values[key] = Number(value);
       else values[key] = value;
     });
     saveMutation.mutate(values);
@@ -124,6 +124,32 @@ export function SystemSettingsPage() {
               onChange={(e) => handleChange("captchaEnabled", e.target.checked)}
             />
           </label>
+        </div>
+
+        <div className="space-y-3">
+          <label className="label-text">Escalation Workflow</label>
+          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-surface-200 p-3">
+            <span>
+              <span className="block text-sm font-medium text-surface-900">Auto-escalate unresolved cases</span>
+              <span className="block text-xs text-surface-500">Flags active cases with no update after N days for priority attention.</span>
+            </span>
+            <input
+              type="checkbox"
+              className="h-5 w-5"
+              checked={!!config.escalationEnabled}
+              onChange={(e) => handleChange("escalationEnabled", e.target.checked)}
+            />
+          </label>
+          <label className="label-text">Days of inactivity before escalation</label>
+          <input
+            type="number"
+            min="1"
+            max="90"
+            className={`input-field ${config.escalationEnabled ? "" : "opacity-50"}`}
+            value={config.escalationDays ?? 7}
+            disabled={!config.escalationEnabled}
+            onChange={(e) => handleChange("escalationDays", e.target.value)}
+          />
         </div>
 
         <div className="flex justify-end border-t border-surface-100 pt-4">

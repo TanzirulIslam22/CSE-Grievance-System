@@ -56,3 +56,13 @@ export async function analyzeCase({ title, description }) {
   const { data } = await api.post("/cases/analyze", { title, description });
   return data;
 }
+
+export async function escalateCase(caseId, reason) {
+  const { data } = await api.post(`/cases/${caseId}/escalate`, { reason });
+  return data;
+}
+
+export async function getCaseTimeline(caseId) {
+  const { data } = await api.get(`/cases/${caseId}/timeline`);
+  return data;
+}
