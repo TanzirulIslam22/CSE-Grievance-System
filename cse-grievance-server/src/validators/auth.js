@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const RUET_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@(student\.)?cse\.ruet\.ac\.bd$/;
+const RUET_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@(student\.)?(cse\.)?ruet\.ac\.bd$/;
 
 const captchaFields = {
   captchaToken: z.string().optional(),
